@@ -36,7 +36,7 @@ export async function POST(req) {
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
 
-        const tempDir = path.join(process.cwd(), "tmp/uploads");
+        const tempDir = path.join(process.cwd(), "/tmp/uploads");
         if (!fs.existsSync(tempDir)) {
             fs.mkdirSync(tempDir, { recursive: true });
         }
