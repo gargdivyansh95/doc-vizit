@@ -1,91 +1,67 @@
+export const runtime = "nodejs";
+
 import { NextResponse } from "next/server";
 import { apiInstance } from "@/config";
 import path from "path";
 import FormData from "form-data";
 import fs from "fs";
 
-const generateRandomNumber = () => {
-    return Math.floor(10000 + Math.random() * 90000); // 5 digit random
-};
-
 export async function POST(req) {
-    const token = req.cookies.get("authToken")?.value;
-    let tempFilePath = null;
-    try {
-        const incomingFormData = await req.formData();
-        const file = incomingFormData.get("file");
-        const originalFileName = file.name; // e.g. report.pdf
-        const ext = path.extname(originalFileName); // .pdf
-        const baseName = path.basename(originalFileName, ext); // report
-        const randomNumber = generateRandomNumber();
-        const newFileName = `EDIGIID_${randomNumber}_${baseName}${ext}`;
-        const fields = {};
-        for (const [key, value] of incomingFormData.entries()) {
-            if (key !== "file") {
-                fields[key] = value;
-            }
-        }
+  const token = req.cookies.get("authToken")?.value;
+  let tempFilePath = null;
 
-        if (!file) {
-            return NextResponse.json(
-                { success: false, message: "File missing" },
-                { status: 400 }
-            );
-        }
+  try {
+    const incomingFormData = await req.formData();
+    const file = incomingFormData.get("file");
 
-        const bytes = await file.arrayBuffer();
-        const buffer = Buffer.from(bytes);
-
-        const tempDir = path.join(process.cwd(), "./tmp/uploads");
-        if (!fs.existsSync(tempDir)) {
-            fs.mkdirSync(tempDir, { recursive: true });
-        }
-
-        tempFilePath = path.join(tempDir, newFileName);
-        fs.writeFileSync(tempFilePath, buffer);
-
-        const backendFormData = new FormData();
-        backendFormData.append(
-            "file",
-            fs.createReadStream(tempFilePath),
-            newFileName
-        );
-        Object.entries(fields).forEach(([key, value]) => {
-            backendFormData.append(key, value);
-        });
-
-        apiInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        const response = await apiInstance.post("api/reports/upload", backendFormData,
-            {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    ...backendFormData.getHeaders(),
-                },
-                maxBodyLength: Infinity,
-            }
-        );
-        return NextResponse.json(
-            { success: true, data: response.data },
-            { status: response.status }
-        );
-    } catch (error) {
-        console.error("Upload error:", error?.response?.data || error);
-        return NextResponse.json(
-            {
-                success: false,
-                // message: "Upload failed",
-                error: error?.response?.data?.error || "Upload failed",
-            },
-            { status: error?.response?.status || 500 }
-        );
-    } finally {
-        if (tempFilePath && fs.existsSync(tempFilePath)) {
-            try {
-                fs.unlinkSync(tempFilePath);
-                console.log("Temp file deleted:", tempFilePath);
-            } catch (err) {
-                console.error("Temp file delete failed:", err);
-            }
-        }
+    if (!file) {
+      return NextResponse.json(
+        { success: false, message: "File missing" },
+        { status: 400 }
+      );
     }
+
+    const ext = path.extname(file.name);
+    const baseName = path.basename(file.name, ext);
+    const newFileName = `EDIGIID_${Date.now()}_${baseName}${ext}`;
+
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+
+    // ✅ ONLY THIS
+    const tempDir = "/tmp/uploads";
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+
+    tempFilePath = `${tempDir}/${newFileName}`;
+    fs.writeFileSync(tempFilePath, buffer);
+
+    const backendFormData = new FormData();
+    backendFormData.append(
+      "file",
+      fs.createReadStream(tempFilePath),
+      newFileName
+    );
+
+    const response = await apiInstance.post(
+      "api/reports/upload",
+      backendFormData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...backendFormData.getHeaders(),
+        },
+      }
+    );
+
+    return NextResponse.json({ success: true, data: response.data });
+  } catch (error) {
+    console.error("Upload error:", error);
+    return NextResponse.json({ success: false }, { status: 500 });
+  } finally {
+    if (tempFilePath && fs.existsSync(tempFilePath)) {
+      fs.unlinkSync(tempFilePath);
+    }
+  }
 }
