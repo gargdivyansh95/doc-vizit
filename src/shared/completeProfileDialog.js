@@ -20,19 +20,19 @@ export default function CompleteProfileDialog({ from, open, onClose }) {
     const authState = useSelector((state) => state.auth);
     const profileState = useSelector((state) => state.profile);
     const [isLoading, setIsLoading] = useState(false);
-    const genders = Object.keys(authState?.masterData?.genders).map((key) => ({
+    const genders = authState?.masterData?.genders && Object.keys(authState?.masterData?.genders).map((key) => ({
         id: key,
         label: authState?.masterData?.genders[key],
     }));
-    const bloodGroups = Object.keys(authState?.masterData?.bloodGroups).map((key) => ({
+    const bloodGroups = authState?.masterData?.bloodGroups && Object.keys(authState?.masterData?.bloodGroups).map((key) => ({
         id: key,
         label: authState?.masterData?.bloodGroups[key],
     }));
-    const heightFeet = Object.keys(authState?.masterData?.heightFeet).map((key) => ({
+    const heightFeet = authState?.masterData?.heightFeet && Object.keys(authState?.masterData?.heightFeet).map((key) => ({
         id: key,
         label: authState?.masterData?.heightFeet[key],
     }));
-    const heightInches = Object.keys(authState?.masterData?.heightInches).map((key) => ({
+    const heightInches = authState?.masterData?.heightInches && Object.keys(authState?.masterData?.heightInches).map((key) => ({
         id: key,
         label: authState?.masterData?.heightInches[key],
     }));
