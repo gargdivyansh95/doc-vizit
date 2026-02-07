@@ -1,10 +1,13 @@
-export const runtime = "nodejs";
-
 import { NextResponse } from "next/server";
 import { apiInstance } from "@/config";
 import path from "path";
 import FormData from "form-data";
 import fs from "fs";
+import os from "os";
+
+const generateRandomNumber = () => {
+  return Math.floor(10000 + Math.random() * 90000);
+};
 
 export async function POST(req) {
   const token = req.cookies.get("authToken")?.value;
@@ -13,6 +16,18 @@ export async function POST(req) {
   try {
     const incomingFormData = await req.formData();
     const file = incomingFormData.get("file");
+    const originalFileName = file.name;
+    const ext = path.extname(originalFileName);
+    const baseName = path.basename(originalFileName, ext);
+    const randomNumber = generateRandomNumber();
+    const newFileName = `EDIGIID_${randomNumber}_${baseName}${ext}`;
+
+    const fields = {};
+    for (const [key, value] of incomingFormData.entries()) {
+      if (key !== "file") {
+        fields[key] = value;
+      }
+    }
 
     if (!file) {
       return NextResponse.json(
@@ -21,20 +36,18 @@ export async function POST(req) {
       );
     }
 
-    const ext = path.extname(file.name);
-    const baseName = path.basename(file.name, ext);
-    const newFileName = `EDIGIID_${Date.now()}_${baseName}${ext}`;
-
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // ✅ ONLY THIS
-    const tempDir = "/tmp/uploads";
-    if (!fs.existsSync(tempDir)) {
+    // ✅ Vercel-compatible: Use /tmp directory
+    const tempDir = process.env.VERCEL ? '/tmp' : path.join(process.cwd(), "public/uploads");
+    
+    // Local ke liye directory create karo (Vercel par /tmp already exists)
+    if (!process.env.VERCEL && !fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
 
-    tempFilePath = `${tempDir}/${newFileName}`;
+    tempFilePath = path.join(tempDir, newFileName);
     fs.writeFileSync(tempFilePath, buffer);
 
     const backendFormData = new FormData();
@@ -44,24 +57,41 @@ export async function POST(req) {
       newFileName
     );
 
-    const response = await apiInstance.post(
-      "api/reports/upload",
-      backendFormData,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          ...backendFormData.getHeaders(),
-        },
-      }
-    );
+    Object.entries(fields).forEach(([key, value]) => {
+      backendFormData.append(key, value);
+    });
 
-    return NextResponse.json({ success: true, data: response.data });
+    apiInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    
+    const response = await apiInstance.post("api/reports/upload", backendFormData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...backendFormData.getHeaders(),
+      },
+      maxBodyLength: Infinity,
+    });
+
+    return NextResponse.json(
+      { success: true, data: response.data },
+      { status: response.status }
+    );
   } catch (error) {
-    console.error("Upload error:", error);
-    return NextResponse.json({ success: false }, { status: 500 });
+    console.error("Upload error:", error?.response?.data || error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: error?.response?.data?.error || "Upload failed",
+      },
+      { status: error?.response?.status || 500 }
+    );
   } finally {
     if (tempFilePath && fs.existsSync(tempFilePath)) {
-      fs.unlinkSync(tempFilePath);
+      try {
+        fs.unlinkSync(tempFilePath);
+        console.log("Temp file deleted:", tempFilePath);
+      } catch (err) {
+        console.error("Temp file delete failed:", err);
+      }
     }
   }
 }
