@@ -1,0 +1,56 @@
+{
+  "col1": [
+    {
+      "label": "Problem",
+      "href": "/problem"
+    },
+    {
+      "label": "Solution",
+      "href": "/solution"
+    },
+    {
+      "label": "How its work",
+      "href": "/how-its-work"
+    },
+    {
+      "label": "Features",
+      "href": "/features"
+    }
+  ],
+  "col2": [
+    {
+      "label": "About Us",
+      "href": "/about-us"
+    },
+    {
+      "label": "Blog",
+      "href": "/blog"
+    },
+    {
+      "label": "Contact Us",
+      "href": "/contact-us"
+    },
+    {
+      "label": "FAQs",
+      "href": "/faqs"
+    }
+  ],
+  "col3": [
+    {
+      "label": "Privacy Policy",
+      "href": "/privacy-policy"
+    },
+    {
+      "label": "Terms of Service",
+      "href": "/terms-of-service"
+    },
+    {
+      "label": "Data Security",
+      "href": "/data-security"
+    },
+    {
+      "label": "Consent & Permissions",
+      "href": "/consent-permissions"
+    }
+  ]
+}
