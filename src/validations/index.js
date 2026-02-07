@@ -15,5 +15,5 @@ export {
     ProfileSchema,
     ShareReportSchema,
     AddMemberSchema,
-    RequestAccessSchema
+    RequestAccessSchema,
 };
